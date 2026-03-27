@@ -1,0 +1,50 @@
+[
+  {
+    "settingType": "global",
+    "label": "Disable Developer Options",
+    "key": "development_settings_enabled",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off Developer Options which many banking apps detect"
+  },
+  {
+    "settingType": "global",
+    "label": "Disable USB Debugging",
+    "key": "adb_enabled",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off ADB/USB debugging"
+  },
+  {
+    "settingType": "global",
+    "label": "Disable Wireless Debugging",
+    "key": "adb_wifi_enabled",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off wireless ADB debugging"
+  },
+  {
+    "settingType": "secure",
+    "label": "Disable Mock Locations",
+    "key": "mock_location",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Disables mock location providers"
+  },
+  {
+    "settingType": "secure",
+    "label": "Disable Accessibility Services",
+    "key": "accessibility_enabled",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off accessibility services that some apps detect"
+  },
+  {
+    "settingType": "system",
+    "label": "Disable Auto-Rotate",
+    "key": "accelerometer_rotation",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Locks screen rotation"
+  }
+]
