@@ -28,7 +28,7 @@ object NotificationHelper {
         val notification = Notification.Builder(context, STATUS_CHANNEL_ID)
             .setContentTitle("Settings Applied")
             .setContentText("$settingCount setting(s) modified for $appLabel")
-            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setSmallIcon(R.drawable.ic_notification)
             .setAutoCancel(true)
             .setStyle(Notification.BigTextStyle()
                 .bigText("$settingCount setting(s) temporarily modified before launching $appLabel. They will be reverted when you leave the app."))
@@ -43,7 +43,7 @@ object NotificationHelper {
         val notification = Notification.Builder(context, STATUS_CHANNEL_ID)
             .setContentTitle("Settings Reverted")
             .setContentText("$settingCount setting(s) restored after leaving $appLabel")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+            .setSmallIcon(R.drawable.ic_notification)
             .setAutoCancel(true)
             .build()
 
@@ -56,7 +56,7 @@ object NotificationHelper {
         val notification = Notification.Builder(context, STATUS_CHANNEL_ID)
             .setContentTitle("Settings Reverted")
             .setContentText("$settingCount setting(s) manually reverted")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+            .setSmallIcon(R.drawable.ic_notification)
             .setAutoCancel(true)
             .build()
 

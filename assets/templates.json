@@ -46,5 +46,21 @@
     "valueOnLaunch": "0",
     "valueOnRevert": "1",
     "description": "Locks screen rotation"
+  },
+  {
+    "settingType": "system",
+    "label": "Disable Adaptive Brightness",
+    "key": "screen_brightness_mode",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off the light sensor so the screen won't dim when your finger covers it during games"
+  },
+  {
+    "settingType": "system",
+    "label": "Set Maximum Brightness",
+    "key": "screen_brightness",
+    "valueOnLaunch": "255",
+    "valueOnRevert": "128",
+    "description": "Locks screen brightness to maximum for gaming, reverts to 50% when done"
   }
 ]

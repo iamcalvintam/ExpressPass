@@ -1,17 +1,17 @@
 package com.expresspass.expresspass.services
 
+import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.app.usage.UsageEvents
-import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.provider.Settings
 import com.expresspass.expresspass.NotificationHelper
+import com.expresspass.expresspass.R
 import com.expresspass.expresspass.receivers.RevertSettingsReceiver
 import io.flutter.plugin.common.EventChannel
 import kotlinx.coroutines.*
@@ -88,15 +88,13 @@ class AppMonitorService : Service() {
 
     private fun startMonitoring() {
         serviceScope.launch {
-            val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-            var targetWasInForeground = true
+            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
             while (isActive) {
-                delay(1000)
-                val currentForeground = getCurrentForegroundApp(usageStatsManager)
+                delay(2000)
 
-                if (targetWasInForeground && currentForeground != null && currentForeground != targetPackageName) {
-                    // Target app went to background
+                if (!isAppProcessRunning(activityManager, targetPackageName)) {
+                    // Target app process was killed (swiped from recents / force stopped)
                     revertAllSettings()
                     NotificationHelper.showReverted(
                         this@AppMonitorService,
@@ -112,25 +110,13 @@ class AppMonitorService : Service() {
                     stopSelf()
                     return@launch
                 }
-
-                targetWasInForeground = currentForeground == targetPackageName
             }
         }
     }
 
-    private fun getCurrentForegroundApp(usageStatsManager: UsageStatsManager): String? {
-        val now = System.currentTimeMillis()
-        val events = usageStatsManager.queryEvents(now - 5000, now)
-        val event = UsageEvents.Event()
-        var lastResumedPackage: String? = null
-
-        while (events.hasNextEvent()) {
-            events.getNextEvent(event)
-            if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
-                lastResumedPackage = event.packageName
-            }
-        }
-        return lastResumedPackage
+    private fun isAppProcessRunning(activityManager: ActivityManager, packageName: String): Boolean {
+        val runningProcesses = activityManager.runningAppProcesses ?: return false
+        return runningProcesses.any { it.processName == packageName || it.processName.startsWith("$packageName:") }
     }
 
     private fun revertAllSettings() {
@@ -168,7 +154,7 @@ class AppMonitorService : Service() {
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("ExpressPass Active")
             .setContentText("Monitoring $targetPackageName — settings will auto-revert")
-            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setSmallIcon(R.drawable.ic_notification)
             .addAction(
                 Notification.Action.Builder(
                     null, "Revert Now", revertPendingIntent

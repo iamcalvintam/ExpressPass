@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Ticket with lightning bolt cutout -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M20,4 L4,4 C2.9,4 2,4.9 2,6 L2,10.5 C3.1,10.5 4,11.4 4,12.5 C4,13.6 3.1,14.5 2,14.5 L2,18 C2,19.1 2.9,20 4,20 L20,20 C21.1,20 22,19.1 22,18 L22,14.5 C20.9,14.5 20,13.6 20,12.5 C20,11.4 20.9,10.5 22,10.5 L22,6 C22,4.9 21.1,4 20,4 Z
+               M13.5,6 L10.5,12 L13,12 L10.5,18 L15.5,11 L13,11 Z"/>
+</vector>
