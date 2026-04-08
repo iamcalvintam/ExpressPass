@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_setting.dart';
 import '../database/database_helper.dart';
 import '../services/settings_service.dart';
@@ -10,12 +11,13 @@ class AppSettingsProvider extends ChangeNotifier {
   List<AppSetting> _settings = [];
   Map<String, String?> _currentValues = {};
   bool _isLoading = false;
-  // ignore: unused_field
   String _packageName = '';
+  bool _autoRevert = true;
 
   List<AppSetting> get settings => _settings;
   Map<String, String?> get currentValues => _currentValues;
   bool get isLoading => _isLoading;
+  bool get autoRevert => _autoRevert;
 
   Future<void> loadSettings(String packageName) async {
     _packageName = packageName;
@@ -24,8 +26,21 @@ class AppSettingsProvider extends ChangeNotifier {
 
     _settings = await _db.getSettingsForPackage(packageName);
     await _loadCurrentValues();
+    await _loadAutoRevert(packageName);
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> _loadAutoRevert(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    _autoRevert = prefs.getBool('auto_revert_$packageName') ?? true;
+  }
+
+  Future<void> setAutoRevert(bool value) async {
+    _autoRevert = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auto_revert_$_packageName', value);
     notifyListeners();
   }
 

@@ -54,8 +54,10 @@ class _TemplatePickerSheetState extends State<TemplatePickerSheet> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,53 +90,59 @@ class _TemplatePickerSheetState extends State<TemplatePickerSheet> {
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
           else
-            ...List.generate(_templates.length, (index) {
-              final t = _templates[index];
-              final selected = _selectedIndices.contains(index);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Card(
-                  elevation: 0,
-                  color: selected
-                      ? colorScheme.primaryContainer
-                      : colorScheme.surfaceContainerLow,
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _typeColor(t.settingType).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        t.settingType.name.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: _typeColor(t.settingType),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _templates.length,
+                itemBuilder: (context, index) {
+                  final t = _templates[index];
+                  final selected = _selectedIndices.contains(index);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Card(
+                      elevation: 0,
+                      color: selected
+                          ? colorScheme.primaryContainer
+                          : colorScheme.surfaceContainerLow,
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _typeColor(t.settingType).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            t.settingType.name.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: _typeColor(t.settingType),
+                            ),
+                          ),
                         ),
+                        title: Text(t.label, style: const TextStyle(fontWeight: FontWeight.w500)),
+                        subtitle: Text(
+                          t.description.isNotEmpty ? t.description : t.key,
+                          style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                        ),
+                        trailing: selected
+                            ? Icon(Icons.check_circle, color: colorScheme.primary)
+                            : const Icon(Icons.circle_outlined),
+                        onTap: () {
+                          setState(() {
+                            if (selected) {
+                              _selectedIndices.remove(index);
+                            } else {
+                              _selectedIndices.add(index);
+                            }
+                          });
+                        },
                       ),
                     ),
-                    title: Text(t.label, style: const TextStyle(fontWeight: FontWeight.w500)),
-                    subtitle: Text(
-                      t.description.isNotEmpty ? t.description : t.key,
-                      style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
-                    ),
-                    trailing: selected
-                        ? Icon(Icons.check_circle, color: colorScheme.primary)
-                        : const Icon(Icons.circle_outlined),
-                    onTap: () {
-                      setState(() {
-                        if (selected) {
-                          _selectedIndices.remove(index);
-                        } else {
-                          _selectedIndices.add(index);
-                        }
-                      });
-                    },
-                  ),
-                ),
-              );
-            }),
+                  );
+                },
+              ),
+            ),
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,

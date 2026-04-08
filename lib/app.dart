@@ -12,6 +12,7 @@ import 'services/settings_service.dart';
 import 'services/app_list_service.dart';
 import 'services/foreground_service_controller.dart';
 import 'services/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'database/database_helper.dart';
 
 class ExpressPassApp extends StatefulWidget {
@@ -58,11 +59,16 @@ class _ExpressPassAppState extends State<ExpressPassApp> {
       return;
     }
 
+    // Check auto-revert preference
+    final prefs = await SharedPreferences.getInstance();
+    final autoRevert = prefs.getBool('auto_revert_$packageName') ?? true;
+
     // Apply settings and launch
     final result = await _orchestrator.applyAndLaunch(
       packageName,
       settings,
       appLabel: packageName,
+      autoRevert: autoRevert,
     );
 
     if (!result.success) {

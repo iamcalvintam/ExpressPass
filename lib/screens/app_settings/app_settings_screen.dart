@@ -46,7 +46,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   }
 
   Future<void> _applyAndLaunch() async {
-    final settings = context.read<AppSettingsProvider>().settings;
+    final provider = context.read<AppSettingsProvider>();
+    final settings = provider.settings;
     if (settings.isEmpty) {
       _showStatus('No settings configured', false);
       return;
@@ -63,6 +64,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       widget.packageName,
       settings,
       appLabel: widget.appLabel,
+      autoRevert: provider.autoRevert,
     );
     setState(() => _isApplying = false);
     _showStatus(result.message, result.success);
@@ -187,9 +189,16 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.only(top: 8, bottom: 100),
-                  itemCount: provider.settings.length,
+                  itemCount: provider.settings.length + 1,
                   itemBuilder: (context, index) {
-                    final setting = provider.settings[index];
+                    if (index == 0) {
+                      return _AutoRevertToggle(
+                        colorScheme: colorScheme,
+                        value: provider.autoRevert,
+                        onChanged: (v) => provider.setAutoRevert(v),
+                      );
+                    }
+                    final setting = provider.settings[index - 1];
                     final currentValue = provider.currentValues[setting.key];
                     return _SettingCard(
                       setting: setting,
@@ -361,6 +370,63 @@ class _ActionIconButton extends StatelessWidget {
               style: TextStyle(fontSize: 10, color: color),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AutoRevertToggle extends StatelessWidget {
+  final ColorScheme colorScheme;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _AutoRevertToggle({
+    required this.colorScheme,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Card(
+        elevation: 0,
+        color: colorScheme.surfaceContainerLow,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              Icon(
+                value ? Icons.sync_rounded : Icons.sync_disabled_rounded,
+                size: 20,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Auto-revert',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      value
+                          ? 'Settings revert when app is closed'
+                          : 'You must revert settings manually',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(value: value, onChanged: onChanged),
+            ],
+          ),
         ),
       ),
     );

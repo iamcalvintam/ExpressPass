@@ -25,6 +25,7 @@ class LaunchOrchestrator {
     String packageName,
     List<AppSetting> settings, {
     String appLabel = '',
+    bool autoRevert = true,
   }) async {
     _lastAppLabel = appLabel.isNotEmpty ? appLabel : packageName;
     final enabledSettings = settings.where((s) => s.enabled).toList();
@@ -56,11 +57,13 @@ class LaunchOrchestrator {
     final appliedCount = enabledSettings.length - failures.length;
     await _notificationService.showApplied(_lastAppLabel, appliedCount);
 
-    // Start monitoring service
-    try {
-      await _serviceController.startMonitoring(packageName, settings);
-    } catch (_) {
-      // Service may fail but we can still launch
+    // Start monitoring service only if auto-revert is enabled
+    if (autoRevert) {
+      try {
+        await _serviceController.startMonitoring(packageName, settings);
+      } catch (_) {
+        // Service may fail but we can still launch
+      }
     }
 
     // Launch the app
@@ -78,7 +81,10 @@ class LaunchOrchestrator {
       );
     }
 
-    return const LaunchResult(success: true, message: 'Settings applied and app launched');
+    final msg = autoRevert
+        ? 'Settings applied and app launched'
+        : 'Settings applied — remember to revert manually';
+    return LaunchResult(success: true, message: msg);
   }
 
   Future<void> revertSettings(List<AppSetting> settings) async {
