@@ -5,7 +5,8 @@
     "key": "development_settings_enabled",
     "valueOnLaunch": "0",
     "valueOnRevert": "1",
-    "description": "Turns off Developer Options which many banking apps detect"
+    "description": "Turns off Developer Options which many banking apps detect",
+    "category": "Security"
   },
   {
     "settingType": "global",
@@ -13,7 +14,8 @@
     "key": "adb_enabled",
     "valueOnLaunch": "0",
     "valueOnRevert": "1",
-    "description": "Turns off ADB/USB debugging"
+    "description": "Turns off ADB/USB debugging",
+    "category": "Security"
   },
   {
     "settingType": "global",
@@ -21,7 +23,8 @@
     "key": "adb_wifi_enabled",
     "valueOnLaunch": "0",
     "valueOnRevert": "1",
-    "description": "Turns off wireless ADB debugging"
+    "description": "Turns off wireless ADB debugging",
+    "category": "Security"
   },
   {
     "settingType": "secure",
@@ -29,7 +32,8 @@
     "key": "mock_location",
     "valueOnLaunch": "0",
     "valueOnRevert": "1",
-    "description": "Disables mock location providers"
+    "description": "Disables mock location providers",
+    "category": "Security"
   },
   {
     "settingType": "secure",
@@ -37,7 +41,17 @@
     "key": "accessibility_enabled",
     "valueOnLaunch": "0",
     "valueOnRevert": "1",
-    "description": "Turns off accessibility services that some apps detect"
+    "description": "Turns off accessibility services that some apps detect",
+    "category": "Security"
+  },
+  {
+    "settingType": "secure",
+    "label": "Disable Location",
+    "key": "location_mode",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "3",
+    "description": "Turns off location services for privacy-sensitive apps",
+    "category": "Security"
   },
   {
     "settingType": "system",
@@ -45,7 +59,17 @@
     "key": "accelerometer_rotation",
     "valueOnLaunch": "0",
     "valueOnRevert": "1",
-    "description": "Locks screen rotation"
+    "description": "Locks screen rotation to portrait",
+    "category": "Display"
+  },
+  {
+    "settingType": "system",
+    "label": "Enable Auto-Rotate",
+    "key": "accelerometer_rotation",
+    "valueOnLaunch": "1",
+    "valueOnRevert": "0",
+    "description": "Enables screen rotation for video or gaming apps, reverts to locked",
+    "category": "Display"
   },
   {
     "settingType": "system",
@@ -53,14 +77,196 @@
     "key": "screen_brightness_mode",
     "valueOnLaunch": "0",
     "valueOnRevert": "1",
-    "description": "Turns off the light sensor so the screen won't dim when your finger covers it during games"
+    "description": "Turns off the light sensor so the screen won't dim when your finger covers it",
+    "category": "Display"
   },
   {
     "settingType": "system",
-    "label": "Set Maximum Brightness",
+    "label": "Set Medium Brightness",
     "key": "screen_brightness",
-    "valueOnLaunch": "255",
+    "valueOnLaunch": "140",
     "valueOnRevert": "128",
-    "description": "Locks screen brightness to maximum for gaming, reverts to 50% when done"
+    "description": "Sets screen brightness to ~55% for comfortable indoor use",
+    "category": "Display"
+  },
+  {
+    "settingType": "system",
+    "label": "Set Low Brightness",
+    "key": "screen_brightness",
+    "valueOnLaunch": "50",
+    "valueOnRevert": "128",
+    "description": "Sets screen brightness low for nighttime or dark-room use, reverts to 50%",
+    "category": "Display"
+  },
+  {
+    "settingType": "system",
+    "label": "Force Landscape Rotation",
+    "key": "user_rotation",
+    "valueOnLaunch": "1",
+    "valueOnRevert": "0",
+    "description": "Sets default rotation to landscape when auto-rotate is off",
+    "category": "Display"
+  },
+  {
+    "settingType": "system",
+    "label": "Increase Font Size",
+    "key": "font_scale",
+    "valueOnLaunch": "1.3",
+    "valueOnRevert": "1.0",
+    "description": "Increases system font size for readability in certain apps",
+    "category": "Display"
+  },
+  {
+    "settingType": "system",
+    "label": "Extend Screen Timeout",
+    "key": "screen_off_timeout",
+    "valueOnLaunch": "600000",
+    "valueOnRevert": "30000",
+    "description": "Sets screen timeout to 10 minutes to prevent dimming during idle moments",
+    "category": "Display"
+  },
+  {
+    "settingType": "system",
+    "label": "Short Screen Timeout",
+    "key": "screen_off_timeout",
+    "valueOnLaunch": "15000",
+    "valueOnRevert": "30000",
+    "description": "Sets screen timeout to 15 seconds for quick lock when using banking apps",
+    "category": "Display"
+  },
+  {
+    "settingType": "global",
+    "label": "Enable Stay Awake (Charging)",
+    "key": "stay_on_while_plugged_in",
+    "valueOnLaunch": "3",
+    "valueOnRevert": "0",
+    "description": "Keeps screen on while charging via USB or AC — useful for dashboards or navigation",
+    "category": "Display"
+  },
+  {
+    "settingType": "system",
+    "label": "Enable Do Not Disturb",
+    "key": "zen_mode",
+    "valueOnLaunch": "1",
+    "valueOnRevert": "0",
+    "description": "Silences notifications to avoid interruptions",
+    "category": "Audio"
+  },
+  {
+    "settingType": "system",
+    "label": "Disable Touch Sounds",
+    "key": "sound_effects_enabled",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off touch feedback sounds",
+    "category": "Audio"
+  },
+  {
+    "settingType": "system",
+    "label": "Disable Haptic Feedback",
+    "key": "haptic_feedback_enabled",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off vibration on touch",
+    "category": "Audio"
+  },
+  {
+    "settingType": "system",
+    "label": "Disable Notification Sounds",
+    "key": "notification_sound",
+    "valueOnLaunch": "",
+    "valueOnRevert": "content://settings/system/notification_sound",
+    "description": "Mutes the notification alert sound",
+    "category": "Audio"
+  },
+  {
+    "settingType": "system",
+    "label": "Max Media Volume",
+    "key": "volume_music",
+    "valueOnLaunch": "15",
+    "valueOnRevert": "7",
+    "description": "Sets media volume to maximum for video or music apps, reverts to ~50%",
+    "category": "Audio"
+  },
+  {
+    "settingType": "system",
+    "label": "Mute Ring Volume",
+    "key": "volume_ring",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "7",
+    "description": "Silences the ringer to avoid calls interrupting your session",
+    "category": "Audio"
+  },
+  {
+    "settingType": "system",
+    "label": "Mute Notification Volume",
+    "key": "volume_notification",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "7",
+    "description": "Silences notification sounds to avoid interruptions",
+    "category": "Audio"
+  },
+  {
+    "settingType": "global",
+    "label": "Disable Animations",
+    "key": "animator_duration_scale",
+    "valueOnLaunch": "0.0",
+    "valueOnRevert": "1.0",
+    "description": "Turns off system animations for snappier performance",
+    "category": "Performance"
+  },
+  {
+    "settingType": "global",
+    "label": "Disable Window Animations",
+    "key": "window_animation_scale",
+    "valueOnLaunch": "0.0",
+    "valueOnRevert": "1.0",
+    "description": "Turns off window transition animations",
+    "category": "Performance"
+  },
+  {
+    "settingType": "global",
+    "label": "Disable Transition Animations",
+    "key": "transition_animation_scale",
+    "valueOnLaunch": "0.0",
+    "valueOnRevert": "1.0",
+    "description": "Turns off activity transition animations",
+    "category": "Performance"
+  },
+  {
+    "settingType": "global",
+    "label": "Disable Bluetooth",
+    "key": "bluetooth_on",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off Bluetooth to save battery or avoid interference",
+    "category": "Connectivity"
+  },
+  {
+    "settingType": "global",
+    "label": "Disable WiFi",
+    "key": "wifi_on",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off WiFi to force mobile data or save battery",
+    "category": "Connectivity"
+  },
+  {
+    "settingType": "global",
+    "label": "Enable Airplane Mode",
+    "key": "airplane_mode_on",
+    "valueOnLaunch": "1",
+    "valueOnRevert": "0",
+    "description": "Enables airplane mode for full offline isolation",
+    "category": "Connectivity"
+  },
+  {
+    "settingType": "global",
+    "label": "Disable Mobile Data",
+    "key": "mobile_data",
+    "valueOnLaunch": "0",
+    "valueOnRevert": "1",
+    "description": "Turns off mobile data to prevent background usage or force WiFi",
+    "category": "Connectivity"
   }
 ]

@@ -6,11 +6,36 @@ import '../../providers/app_list_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../models/installed_app.dart';
 
-/// Caches decoded images by package name to avoid re-decoding on every frame.
-final Map<String, MemoryImage> _iconCache = {};
+/// LRU icon cache — caps at 100 entries to avoid unbounded memory growth.
+final _iconCache = _LruCache<String, MemoryImage>(100);
 
 MemoryImage _getCachedIcon(Uint8List bytes, String packageName) {
-  return _iconCache.putIfAbsent(packageName, () => MemoryImage(bytes));
+  final cached = _iconCache.get(packageName);
+  if (cached != null) return cached;
+  final image = MemoryImage(bytes);
+  _iconCache.put(packageName, image);
+  return image;
+}
+
+class _LruCache<K, V> {
+  final int maxSize;
+  final _map = <K, V>{};
+
+  _LruCache(this.maxSize);
+
+  V? get(K key) {
+    final value = _map.remove(key);
+    if (value != null) _map[key] = value; // Move to end (most recent)
+    return value;
+  }
+
+  void put(K key, V value) {
+    _map.remove(key);
+    _map[key] = value;
+    while (_map.length > maxSize) {
+      _map.remove(_map.keys.first); // Evict oldest
+    }
+  }
 }
 
 class AppListScreen extends StatefulWidget {
@@ -90,6 +115,11 @@ class _AppListScreenState extends State<AppListScreen> {
                 }
               });
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.sync_rounded),
+            tooltip: 'Active Settings',
+            onPressed: () => Navigator.of(context).pushNamed('/active-settings'),
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),

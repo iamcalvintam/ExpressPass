@@ -40,7 +40,7 @@ class ShortcutHandler(private val context: Context) : MethodChannel.MethodCallHa
     private fun requestPinShortcut(packageName: String, label: String, iconBytes: ByteArray?): Boolean {
         val shortcutIntent = Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse("expresspass://launch/$packageName")
-            component = ComponentName(context.packageName, "${context.packageName}.MainActivity")
+            component = ComponentName(context.packageName, "${context.packageName}.ShortcutLaunchActivity")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
 

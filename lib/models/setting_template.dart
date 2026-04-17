@@ -7,6 +7,7 @@ class SettingTemplate {
   final String valueOnLaunch;
   final String valueOnRevert;
   final String description;
+  final String category;
 
   const SettingTemplate({
     required this.settingType,
@@ -15,6 +16,7 @@ class SettingTemplate {
     required this.valueOnLaunch,
     required this.valueOnRevert,
     this.description = '',
+    this.category = 'Misc',
   });
 
   factory SettingTemplate.fromJson(Map<String, dynamic> json) {
@@ -25,6 +27,7 @@ class SettingTemplate {
       valueOnLaunch: json['valueOnLaunch'] as String,
       valueOnRevert: json['valueOnRevert'] as String,
       description: json['description'] as String? ?? '',
+      category: json['category'] as String? ?? 'Misc',
     );
   }
 

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/app_setting.dart';
+import '../../database/database_helper.dart';
 import '../../providers/app_settings_provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../services/launch_orchestrator.dart';
@@ -9,6 +10,7 @@ import '../../services/settings_service.dart';
 import '../../services/app_list_service.dart';
 import '../../services/foreground_service_controller.dart';
 import '../../services/shortcut_service.dart';
+import '../../services/template_service.dart';
 import 'add_setting_sheet.dart';
 import 'template_picker_sheet.dart';
 
@@ -59,6 +61,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       return;
     }
 
+    // Show confirmation dialog unless skipped
+    if (!provider.skipConfirmation) {
+      final confirmed = await _showConfirmationDialog(provider);
+      if (confirmed != true) return;
+    }
+
     setState(() => _isApplying = true);
     final result = await _orchestrator.applyAndLaunch(
       widget.packageName,
@@ -67,7 +75,231 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       autoRevert: provider.autoRevert,
     );
     setState(() => _isApplying = false);
-    _showStatus(result.message, result.success);
+    if (result.failedSettings.isNotEmpty) {
+      _showFailureDetails(result);
+    } else {
+      _showStatus(result.message, result.success);
+    }
+  }
+
+  void _showFailureDetails(LaunchResult result) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.message),
+        backgroundColor: Colors.orange,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Details',
+          textColor: Colors.white,
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Failed Settings'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: result.failedSettings.map((f) => ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    title: Text(f.label, style: const TextStyle(fontSize: 14)),
+                    subtitle: Text(f.reason, style: const TextStyle(fontSize: 12)),
+                  )).toList(),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<bool?> _showConfirmationDialog(AppSettingsProvider provider) {
+    final enabledSettings = provider.settings.where((s) => s.enabled).toList();
+    var dontAskAgain = false;
+
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Apply Settings?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${enabledSettings.length} setting(s) will be modified:',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: enabledSettings.length,
+                  itemBuilder: (_, i) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.circle, size: 6),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            enabledSettings[i].label,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      value: dontAskAgain,
+                      onChanged: (v) => setDialogState(() => dontAskAgain = v ?? false),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Don't ask again for this app",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (dontAskAgain) {
+                  provider.setSkipConfirmation(true);
+                }
+                Navigator.of(ctx).pop(true);
+              },
+              child: const Text('Apply & Launch'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _applyOnly() async {
+    final provider = context.read<AppSettingsProvider>();
+    final settings = provider.settings;
+    if (settings.isEmpty) {
+      _showStatus('No settings configured', false);
+      return;
+    }
+
+    setState(() => _isApplying = true);
+    final result = await _orchestrator.applyOnly(
+      widget.packageName,
+      settings,
+      appLabel: widget.appLabel,
+    );
+    setState(() => _isApplying = false);
+    if (result.failedSettings.isNotEmpty) {
+      _showFailureDetails(result);
+    } else {
+      _showStatus(result.message, result.success);
+    }
+  }
+
+  Future<void> _copyFromApp() async {
+    final db = DatabaseHelper();
+    final packages = await db.getConfiguredPackages();
+    // Remove current package
+    packages.remove(widget.packageName);
+    if (packages.isEmpty) {
+      _showStatus('No other apps have settings configured', false);
+      return;
+    }
+    if (!mounted) return;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                child: Text(
+                  'Copy settings from...',
+                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+              ...packages.map((pkg) => ListTile(
+                leading: Icon(Icons.android, color: colorScheme.primary),
+                title: Text(pkg, style: const TextStyle(fontSize: 13, fontFamily: 'monospace')),
+                onTap: () => Navigator.of(ctx).pop(pkg),
+              )),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected == null) return;
+
+    final count = await db.copySettingsToPackage(selected, widget.packageName);
+    if (mounted) {
+      context.read<AppSettingsProvider>().loadSettings(widget.packageName);
+      _showStatus('Copied $count setting(s) from $selected', true);
+    }
+  }
+
+  Future<void> _saveAsTemplate(AppSetting setting) async {
+    await TemplateService().saveCustomTemplate(setting);
+    if (mounted) {
+      _showStatus('Saved "${setting.label}" as template', true);
+    }
+  }
+
+  void _deleteWithUndo(AppSettingsProvider provider, AppSetting setting) {
+    final removed = provider.removeSetting(setting.id!);
+    if (removed == null) return;
+    final (removedSetting, removedIndex) = removed;
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Deleted "${removedSetting.label}"'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            provider.undoRemoveSetting(removedSetting, removedIndex);
+          },
+        ),
+        duration: const Duration(seconds: 4),
+      ),
+    ).closed.then((reason) {
+      if (reason != SnackBarClosedReason.action) {
+        provider.commitDelete(setting.id!);
+      }
+    });
   }
 
   Future<void> _revertSettings() async {
@@ -116,6 +348,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       useSafeArea: true,
       builder: (ctx) => TemplatePickerSheet(
         packageName: widget.packageName,
+        existingSettings: context.read<AppSettingsProvider>().settings,
         onTemplatesSelected: (settings) {
           final provider = context.read<AppSettingsProvider>();
           for (final setting in settings) {
@@ -206,7 +439,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                       colorScheme: colorScheme,
                       onToggle: () => provider.toggleSetting(setting),
                       onEdit: () => _openAddSettingSheet(setting),
-                      onDelete: () => provider.deleteSetting(setting.id!),
+                      onDelete: () => _deleteWithUndo(provider, setting),
+                      onSaveAsTemplate: () => _saveAsTemplate(setting),
                     );
                   },
                 ),
@@ -215,10 +449,12 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
         hasSettings: hasSettings,
         isApplying: _isApplying,
         onLaunch: _applyAndLaunch,
+        onApplyOnly: _applyOnly,
         onRevert: _revertSettings,
         onTemplate: _openTemplatePicker,
         onShortcut: _createShortcut,
         onAddSetting: () => _openAddSettingSheet(),
+        onCopyFromApp: _copyFromApp,
       ),
     );
   }
@@ -229,20 +465,24 @@ class _BottomActionBar extends StatelessWidget {
   final bool hasSettings;
   final bool isApplying;
   final VoidCallback onLaunch;
+  final VoidCallback onApplyOnly;
   final VoidCallback onRevert;
   final VoidCallback onTemplate;
   final VoidCallback onShortcut;
   final VoidCallback onAddSetting;
+  final VoidCallback onCopyFromApp;
 
   const _BottomActionBar({
     required this.colorScheme,
     required this.hasSettings,
     required this.isApplying,
     required this.onLaunch,
+    required this.onApplyOnly,
     required this.onRevert,
     required this.onTemplate,
     required this.onShortcut,
     required this.onAddSetting,
+    required this.onCopyFromApp,
   });
 
   @override
@@ -275,6 +515,12 @@ class _BottomActionBar extends StatelessWidget {
                     colorScheme: colorScheme,
                   ),
                   _ActionIconButton(
+                    icon: Icons.tune_rounded,
+                    label: 'Apply',
+                    onTap: hasSettings && !isApplying ? onApplyOnly : null,
+                    colorScheme: colorScheme,
+                  ),
+                  _ActionIconButton(
                     icon: Icons.auto_fix_high,
                     label: 'Templates',
                     onTap: onTemplate,
@@ -284,6 +530,12 @@ class _BottomActionBar extends StatelessWidget {
                     icon: Icons.add_circle_outline,
                     label: 'Add',
                     onTap: onAddSetting,
+                    colorScheme: colorScheme,
+                  ),
+                  _ActionIconButton(
+                    icon: Icons.copy_rounded,
+                    label: 'Copy',
+                    onTap: onCopyFromApp,
                     colorScheme: colorScheme,
                   ),
                   _ActionIconButton(
@@ -440,6 +692,7 @@ class _SettingCard extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onSaveAsTemplate;
 
   const _SettingCard({
     required this.setting,
@@ -448,6 +701,7 @@ class _SettingCard extends StatelessWidget {
     required this.onToggle,
     required this.onEdit,
     required this.onDelete,
+    this.onSaveAsTemplate,
   });
 
   Color _chipColor() {
@@ -482,6 +736,7 @@ class _SettingCard extends StatelessWidget {
               : colorScheme.surfaceContainerLow.withOpacity(0.5),
           child: InkWell(
             onTap: onEdit,
+            onLongPress: onSaveAsTemplate,
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.all(12),

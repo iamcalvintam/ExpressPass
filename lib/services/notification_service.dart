@@ -3,11 +3,12 @@ import 'package:flutter/services.dart';
 class NotificationService {
   static const _channel = MethodChannel('com.expresspass/notifications');
 
-  Future<void> showApplied(String appLabel, int count) async {
+  Future<void> showApplied(String appLabel, int count, {bool autoRevert = true}) async {
     try {
       await _channel.invokeMethod('showApplied', {
         'appLabel': appLabel,
         'count': count,
+        'autoRevert': autoRevert,
       });
     } on PlatformException {
       // Notification failed, non-critical

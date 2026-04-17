@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/permission_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../services/backup_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -129,6 +130,44 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
               icon: const Icon(Icons.refresh),
               label: const Text('Refresh Permissions'),
             ),
+          ),
+          const Divider(),
+
+          // Data section
+          _SectionHeader(title: 'Data', colorScheme: colorScheme),
+          ListTile(
+            leading: const Icon(Icons.upload_outlined),
+            title: const Text('Export Settings'),
+            subtitle: const Text('Share a backup of all app configurations'),
+            onTap: () async {
+              final backup = BackupService();
+              final success = await backup.exportSettings();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success ? 'Export ready' : 'No settings to export'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.download_outlined),
+            title: const Text('Import Settings'),
+            subtitle: const Text('Restore from a backup file'),
+            onTap: () async {
+              final backup = BackupService();
+              final (imported, skipped) = await backup.importSettings();
+              if (mounted) {
+                final msg = imported > 0
+                    ? 'Imported $imported setting(s)${skipped > 0 ? ', $skipped skipped' : ''}'
+                    : 'No settings imported';
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+                );
+              }
+            },
           ),
           const Divider(),
 

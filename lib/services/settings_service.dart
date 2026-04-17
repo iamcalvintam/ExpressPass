@@ -1,19 +1,24 @@
 import 'package:flutter/services.dart';
 import '../models/app_setting.dart';
 
+enum WriteResult { success, permissionDenied, failed }
+
 class SettingsService {
   static const _channel = MethodChannel('com.expresspass/settings');
 
-  Future<bool> writeSetting(SettingType type, String key, String value) async {
+  Future<WriteResult> writeSetting(SettingType type, String key, String value) async {
     try {
       final result = await _channel.invokeMethod<bool>('writeSetting', {
         'type': type.name,
         'key': key,
         'value': value,
       });
-      return result ?? false;
-    } on PlatformException {
-      return false;
+      return (result ?? false) ? WriteResult.success : WriteResult.failed;
+    } on PlatformException catch (e) {
+      if (e.code == 'PERMISSION_DENIED' || e.code == 'SecurityException') {
+        return WriteResult.permissionDenied;
+      }
+      return WriteResult.failed;
     }
   }
 

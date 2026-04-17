@@ -6,6 +6,7 @@ import 'screens/app_list/app_list_screen.dart';
 import 'screens/app_settings/app_settings_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/active_settings/active_settings_screen.dart';
 import 'services/deep_link_service.dart';
 import 'services/launch_orchestrator.dart';
 import 'services/settings_service.dart';
@@ -71,7 +72,10 @@ class _ExpressPassAppState extends State<ExpressPassApp> {
       autoRevert: autoRevert,
     );
 
-    if (!result.success) {
+    if (result.success) {
+      // Close ExpressPass so it doesn't sit in the recents stack
+      await DeepLinkService.closeActivity();
+    } else {
       _showSnackBar(result.message);
     }
   }
@@ -135,6 +139,10 @@ class _ExpressPassAppState extends State<ExpressPassApp> {
               case '/settings':
                 return MaterialPageRoute(
                   builder: (_) => const SettingsScreen(),
+                );
+              case '/active-settings':
+                return MaterialPageRoute(
+                  builder: (_) => const ActiveSettingsScreen(),
                 );
               case '/app-settings':
                 final args = settings.arguments as Map<String, dynamic>;

@@ -47,7 +47,8 @@ class MainActivity : FlutterActivity() {
                     "showApplied" -> {
                         val appLabel = call.argument<String>("appLabel") ?: ""
                         val count = call.argument<Int>("count") ?: 0
-                        NotificationHelper.showApplied(this, appLabel, count)
+                        val autoRevert = call.argument<Boolean>("autoRevert") ?: true
+                        NotificationHelper.showApplied(this, appLabel, count, autoRevert)
                         result.success(true)
                     }
                     "showReverted" -> {
@@ -71,9 +72,12 @@ class MainActivity : FlutterActivity() {
                     "startMonitoring" -> {
                         val packageName = call.argument<String>("packageName") ?: ""
                         val settingsJson = call.argument<String>("settingsJson") ?: "[]"
+                        val timeoutMs = call.argument<Number>("timeoutMs")?.toLong()
+                            ?: AppMonitorService.DEFAULT_TIMEOUT_MS
                         val intent = Intent(this, AppMonitorService::class.java).apply {
                             putExtra("packageName", packageName)
                             putExtra("settingsJson", settingsJson)
+                            putExtra("timeoutMs", timeoutMs)
                         }
                         startForegroundService(intent)
                         result.success(true)
@@ -85,6 +89,17 @@ class MainActivity : FlutterActivity() {
                     "isRunning" -> {
                         result.success(AppMonitorService.isRunning)
                     }
+                    "saveSettingsForRevert" -> {
+                        val settingsJson = call.argument<String>("settingsJson") ?: "[]"
+                        getSharedPreferences("monitor", MODE_PRIVATE).edit().apply {
+                            putString("settingsJson", settingsJson)
+                            apply()
+                        }
+                        try {
+                            java.io.File(filesDir, "settings_backup.json").writeText(settingsJson)
+                        } catch (_: Exception) {}
+                        result.success(true)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -95,6 +110,10 @@ class MainActivity : FlutterActivity() {
                     "getInitialLink" -> {
                         val link = consumeInitialDeepLink()
                         result.success(link)
+                    }
+                    "closeActivity" -> {
+                        result.success(true)
+                        finishAndRemoveTask()
                     }
                     else -> result.notImplemented()
                 }

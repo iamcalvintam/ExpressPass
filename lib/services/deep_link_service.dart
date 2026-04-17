@@ -22,4 +22,12 @@ class DeepLinkService {
       return null;
     }
   }
+
+  static Future<void> closeActivity() async {
+    try {
+      await _channel.invokeMethod('closeActivity');
+    } on PlatformException {
+      // Non-critical — activity may already be gone
+    }
+  }
 }

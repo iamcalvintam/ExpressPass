@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/app_setting.dart';
+import '../../services/settings_service.dart';
 
 class AddSettingSheet extends StatefulWidget {
   final String packageName;
@@ -24,6 +25,8 @@ class _AddSettingSheetState extends State<AddSettingSheet> {
   late final TextEditingController _launchValueController;
   late final TextEditingController _revertValueController;
   final _formKey = GlobalKey<FormState>();
+  final _settingsService = SettingsService();
+  bool _isReadingValue = false;
 
   @override
   void initState() {
@@ -63,6 +66,27 @@ class _AddSettingSheetState extends State<AddSettingSheet> {
 
     widget.onSave(setting);
     Navigator.of(context).pop();
+  }
+
+  Future<void> _readCurrentValue() async {
+    final key = _keyController.text.trim();
+    if (key.isEmpty) return;
+
+    setState(() => _isReadingValue = true);
+    final value = await _settingsService.readSetting(_settingType, key);
+    setState(() => _isReadingValue = false);
+
+    if (value != null) {
+      _revertValueController.text = value;
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not read current value'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -157,10 +181,21 @@ class _AddSettingSheetState extends State<AddSettingSheet> {
                   Expanded(
                     child: TextFormField(
                       controller: _revertValueController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Value on Revert',
                         hintText: 'e.g., 1',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: _isReadingValue
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.download_rounded, size: 20),
+                          tooltip: 'Read current device value',
+                          onPressed: _isReadingValue ? null : _readCurrentValue,
+                        ),
                       ),
                       validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
                     ),

@@ -1,11 +1,12 @@
 package com.expresspass.expresspass.services
 
-import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
@@ -16,12 +17,16 @@ import com.expresspass.expresspass.receivers.RevertSettingsReceiver
 import io.flutter.plugin.common.EventChannel
 import kotlinx.coroutines.*
 import org.json.JSONArray
+import java.io.File
 
 class AppMonitorService : Service() {
 
     companion object {
         const val CHANNEL_ID = "expresspass_monitor"
         const val NOTIFICATION_ID = 1001
+        const val DEFAULT_TIMEOUT_MS = 4 * 60 * 60 * 1000L // 4 hours
+        const val POLL_INTERVAL_MS = 2000L
+        const val GRACE_POLLS_REQUIRED = 3 // 3 consecutive "away" polls (~6s) before reverting
         var isRunning = false
         var eventSink: EventChannel.EventSink? = null
     }
@@ -29,6 +34,8 @@ class AppMonitorService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
     private var targetPackageName = ""
     private var settingsToRevert = mutableListOf<SettingEntry>()
+    private var startTimeMillis = 0L
+    private var timeoutMs = DEFAULT_TIMEOUT_MS
 
     data class SettingEntry(
         val type: String,
@@ -46,6 +53,7 @@ class AppMonitorService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         targetPackageName = intent?.getStringExtra("packageName") ?: ""
         val settingsJson = intent?.getStringExtra("settingsJson") ?: "[]"
+        timeoutMs = intent?.getLongExtra("timeoutMs", DEFAULT_TIMEOUT_MS) ?: DEFAULT_TIMEOUT_MS
         parseSettings(settingsJson)
 
         // Save settings to shared prefs for the broadcast receiver
@@ -54,9 +62,15 @@ class AppMonitorService : Service() {
             apply()
         }
 
+        // Write backup file as fallback
+        try {
+            File(filesDir, "settings_backup.json").writeText(settingsJson)
+        } catch (_: Exception) {}
+
         val notification = buildNotification()
         startForeground(NOTIFICATION_ID, notification)
         isRunning = true
+        startTimeMillis = System.currentTimeMillis()
 
         startMonitoring()
         return START_NOT_STICKY
@@ -66,7 +80,11 @@ class AppMonitorService : Service() {
         super.onDestroy()
         serviceScope.cancel()
         isRunning = false
-        eventSink?.success(mapOf("event" to "stopped"))
+        try {
+            eventSink?.success(mapOf("event" to "stopped"))
+        } catch (_: Exception) {
+            eventSink = null
+        }
     }
 
     private fun parseSettings(json: String) {
@@ -88,35 +106,82 @@ class AppMonitorService : Service() {
 
     private fun startMonitoring() {
         serviceScope.launch {
-            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            var awayCount = 0
 
             while (isActive) {
-                delay(2000)
+                delay(POLL_INTERVAL_MS)
 
-                if (!isAppProcessRunning(activityManager, targetPackageName)) {
-                    // Target app process was killed (swiped from recents / force stopped)
+                // Check timeout
+                val elapsed = System.currentTimeMillis() - startTimeMillis
+                if (elapsed >= timeoutMs) {
                     revertAllSettings()
-                    NotificationHelper.showReverted(
+                    NotificationHelper.showTimedOut(
                         this@AppMonitorService,
                         targetPackageName,
                         settingsToRevert.size
                     )
-                    withContext(Dispatchers.Main) {
-                        eventSink?.success(mapOf(
-                            "event" to "reverted",
-                            "packageName" to targetPackageName
-                        ))
-                    }
+                    emitEvent("timedOut")
                     stopSelf()
                     return@launch
+                }
+
+                // Check if target app is still in foreground using UsageStatsManager
+                if (isTargetAppForeground()) {
+                    awayCount = 0
+                } else {
+                    awayCount++
+                    if (awayCount >= GRACE_POLLS_REQUIRED) {
+                        revertAllSettings()
+                        NotificationHelper.showReverted(
+                            this@AppMonitorService,
+                            targetPackageName,
+                            settingsToRevert.size
+                        )
+                        emitEvent("reverted")
+                        stopSelf()
+                        return@launch
+                    }
                 }
             }
         }
     }
 
-    private fun isAppProcessRunning(activityManager: ActivityManager, packageName: String): Boolean {
-        val runningProcesses = activityManager.runningAppProcesses ?: return false
-        return runningProcesses.any { it.processName == packageName || it.processName.startsWith("$packageName:") }
+    private fun isTargetAppForeground(): Boolean {
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+            ?: return true // Fail-safe: assume still running if we can't check
+
+        val now = System.currentTimeMillis()
+        val events = usageStatsManager.queryEvents(now - 5000, now)
+        val event = UsageEvents.Event()
+
+        var lastForegroundPackage: String? = null
+
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                lastForegroundPackage = event.packageName
+            }
+        }
+
+        // If no foreground event found in the window, assume target is still in front
+        if (lastForegroundPackage == null) return true
+
+        // Check if the foreground app is our target or our own app
+        return lastForegroundPackage == targetPackageName ||
+                lastForegroundPackage == packageName
+    }
+
+    private suspend fun emitEvent(eventName: String) {
+        withContext(Dispatchers.Main) {
+            try {
+                eventSink?.success(mapOf(
+                    "event" to eventName,
+                    "packageName" to targetPackageName
+                ))
+            } catch (_: Exception) {
+                eventSink = null
+            }
+        }
     }
 
     private fun revertAllSettings() {
