@@ -72,6 +72,51 @@ class _AppListScreenState extends State<AppListScreen> {
     super.dispose();
   }
 
+  void _showTagPicker(InstalledApp app) {
+    final appList = context.read<AppListProvider>();
+    final currentTag = appList.appTags[app.packageName];
+
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+              child: Text(
+                'Tag "${app.label}"',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (currentTag != null)
+              ListTile(
+                leading: const Icon(Icons.close),
+                title: const Text('Remove tag'),
+                onTap: () {
+                  appList.setAppTag(app.packageName, null);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+            ...AppListProvider.availableTags.map((tag) => ListTile(
+              leading: Icon(
+                tag == currentTag ? Icons.check_circle : Icons.circle_outlined,
+                color: tag == currentTag ? Theme.of(ctx).colorScheme.primary : null,
+              ),
+              title: Text(tag),
+              onTap: () {
+                appList.setAppTag(app.packageName, tag);
+                Navigator.of(ctx).pop();
+              },
+            )),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _openAppSettings(InstalledApp app) {
     Navigator.of(context).pushNamed(
       '/app-settings',
@@ -209,6 +254,36 @@ class _AppListScreenState extends State<AppListScreen> {
             const SliverToBoxAdapter(
                 child: Divider(height: 1, indent: 16, endIndent: 16)),
           ],
+          // Tag filter chips
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 42,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: const Text('All'),
+                      selected: appList.activeTagFilter == null,
+                      onSelected: (_) => appList.setTagFilter(null),
+                    ),
+                  ),
+                  ...AppListProvider.availableTags.map((tag) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(tag),
+                      selected: appList.activeTagFilter == tag,
+                      onSelected: (_) => appList.setTagFilter(
+                        appList.activeTagFilter == tag ? null : tag,
+                      ),
+                    ),
+                  )),
+                ],
+              ),
+            ),
+          ),
           // All apps section header
           SliverToBoxAdapter(
             child: _SectionHeader(
@@ -233,7 +308,9 @@ class _AppListScreenState extends State<AppListScreen> {
                   return _AppGridItem(
                     app: app,
                     colorScheme: colorScheme,
+                    tag: appList.appTags[app.packageName],
                     onTap: () => _openAppSettings(app),
+                    onLongPress: () => _showTagPicker(app),
                   );
                 },
                 childCount: appList.apps.length,
@@ -346,17 +423,22 @@ class _AppGridItem extends StatelessWidget {
   final InstalledApp app;
   final ColorScheme colorScheme;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final String? tag;
 
   const _AppGridItem({
     required this.app,
     required this.colorScheme,
     required this.onTap,
+    this.onLongPress,
+    this.tag,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
@@ -372,6 +454,11 @@ class _AppGridItem extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
             ),
+            if (tag != null)
+              Text(
+                tag!,
+                style: TextStyle(fontSize: 9, color: colorScheme.primary),
+              ),
           ],
         ),
       ),

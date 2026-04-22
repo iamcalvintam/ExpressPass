@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/app_setting.dart';
 import '../../database/database_helper.dart';
@@ -411,6 +412,14 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             ),
           ],
         ),
+        actions: [
+          if (hasSettings)
+            IconButton(
+              icon: Icon(provider.allEnabled ? Icons.deselect : Icons.select_all),
+              tooltip: provider.allEnabled ? 'Disable All' : 'Enable All',
+              onPressed: () => provider.setAllEnabled(!provider.allEnabled),
+            ),
+        ],
       ),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -420,29 +429,32 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   onAddTemplate: _openTemplatePicker,
                   onAddManual: () => _openAddSettingSheet(),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.only(top: 8, bottom: 100),
-                  itemCount: provider.settings.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return _AutoRevertToggle(
+              : RefreshIndicator(
+                  onRefresh: () => provider.refreshCurrentValues(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(top: 8, bottom: 100),
+                    itemCount: provider.settings.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return _AutoRevertToggle(
+                          colorScheme: colorScheme,
+                          value: provider.autoRevert,
+                          onChanged: (v) => provider.setAutoRevert(v),
+                        );
+                      }
+                      final setting = provider.settings[index - 1];
+                      final currentValue = provider.currentValues[setting.key];
+                      return _SettingCard(
+                        setting: setting,
+                        currentValue: currentValue,
                         colorScheme: colorScheme,
-                        value: provider.autoRevert,
-                        onChanged: (v) => provider.setAutoRevert(v),
+                        onToggle: () => provider.toggleSetting(setting),
+                        onEdit: () => _openAddSettingSheet(setting),
+                        onDelete: () => _deleteWithUndo(provider, setting),
+                        onSaveAsTemplate: () => _saveAsTemplate(setting),
                       );
-                    }
-                    final setting = provider.settings[index - 1];
-                    final currentValue = provider.currentValues[setting.key];
-                    return _SettingCard(
-                      setting: setting,
-                      currentValue: currentValue,
-                      colorScheme: colorScheme,
-                      onToggle: () => provider.toggleSetting(setting),
-                      onEdit: () => _openAddSettingSheet(setting),
-                      onDelete: () => _deleteWithUndo(provider, setting),
-                      onSaveAsTemplate: () => _saveAsTemplate(setting),
-                    );
-                  },
+                    },
+                  ),
                 ),
       bottomNavigationBar: _BottomActionBar(
         colorScheme: colorScheme,
@@ -812,6 +824,39 @@ class _SettingCard extends StatelessWidget {
                         color: colorScheme.secondary,
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () {
+                      final cmd = 'adb shell settings put ${setting.settingType.name} ${setting.key} ${setting.valueOnLaunch}';
+                      Clipboard.setData(ClipboardData(text: cmd));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('ADB command copied'),
+                          behavior: SnackBarBehavior.floating,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.terminal, size: 12, color: colorScheme.onSurfaceVariant.withOpacity(0.6)),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'adb shell settings put ${setting.settingType.name} ${setting.key} ${setting.valueOnLaunch}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontFamily: 'monospace',
+                              color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Icon(Icons.copy, size: 12, color: colorScheme.onSurfaceVariant.withOpacity(0.6)),
+                      ],
+                    ),
                   ),
                 ],
               ),

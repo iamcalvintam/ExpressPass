@@ -14,7 +14,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBindingObserver {
   final _pageController = PageController();
   int _currentPage = 0;
-  static const _totalPages = 5;
+  static const _totalPages = 7;
 
   @override
   void initState() {
@@ -95,6 +95,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with WidgetsBinding
                     },
                     onCheck: () => permissions.checkAll(),
                   ),
+                  _ShortcutsPage(colorScheme: colorScheme),
+                  _FeaturesPage(colorScheme: colorScheme),
                   _CompletePage(
                     colorScheme: colorScheme,
                     allGranted: permissions.allGranted,
@@ -400,6 +402,146 @@ class _NotificationPermissionPage extends StatelessWidget {
               backgroundColor: Colors.green.withOpacity(0.1),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ShortcutsPage extends StatelessWidget {
+  final ColorScheme colorScheme;
+  const _ShortcutsPage({required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.add_to_home_screen, size: 64, color: colorScheme.primary),
+          const SizedBox(height: 24),
+          Text(
+            'Home Screen Shortcuts',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Create shortcuts on your home screen to apply settings and launch apps instantly — without opening ExpressPass first.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          _FeatureRow(
+            icon: Icons.bolt,
+            text: 'Launches instantly via native fast path',
+            colorScheme: colorScheme,
+          ),
+          _FeatureRow(
+            icon: Icons.visibility_off,
+            text: 'ExpressPass stays hidden from recents',
+            colorScheme: colorScheme,
+          ),
+          _FeatureRow(
+            icon: Icons.touch_app,
+            text: 'Create from the Shortcut button in any app\'s settings',
+            colorScheme: colorScheme,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeaturesPage extends StatelessWidget {
+  final ColorScheme colorScheme;
+  const _FeaturesPage({required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.auto_awesome, size: 64, color: colorScheme.primary),
+          const SizedBox(height: 24),
+          Text(
+            'Key Features',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          _FeatureRow(
+            icon: Icons.sync_rounded,
+            text: 'Auto-revert: settings revert when you leave the app',
+            colorScheme: colorScheme,
+          ),
+          _FeatureRow(
+            icon: Icons.sync_disabled_rounded,
+            text: 'Disable auto-revert for apps with false detection',
+            colorScheme: colorScheme,
+          ),
+          _FeatureRow(
+            icon: Icons.dashboard_rounded,
+            text: 'Active Settings dashboard shows all applied changes',
+            colorScheme: colorScheme,
+          ),
+          _FeatureRow(
+            icon: Icons.auto_fix_high,
+            text: '30+ templates for security, display, audio and more',
+            colorScheme: colorScheme,
+          ),
+          _FeatureRow(
+            icon: Icons.tune_rounded,
+            text: 'Apply Only mode: change settings without launching',
+            colorScheme: colorScheme,
+          ),
+          _FeatureRow(
+            icon: Icons.save_alt,
+            text: 'Import/export your configurations for backup',
+            colorScheme: colorScheme,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeatureRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final ColorScheme colorScheme;
+
+  const _FeatureRow({
+    required this.icon,
+    required this.text,
+    required this.colorScheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         ],
       ),
     );

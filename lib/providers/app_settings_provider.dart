@@ -89,6 +89,19 @@ class AppSettingsProvider extends ChangeNotifier {
     await updateSetting(updated);
   }
 
+  bool get allEnabled => _settings.isNotEmpty && _settings.every((s) => s.enabled);
+
+  Future<void> setAllEnabled(bool enabled) async {
+    for (var i = 0; i < _settings.length; i++) {
+      if (_settings[i].enabled != enabled) {
+        final updated = _settings[i].copyWith(enabled: enabled);
+        await _db.updateSetting(updated);
+        _settings[i] = updated;
+      }
+    }
+    notifyListeners();
+  }
+
   /// Removes from in-memory list only. Call commitDelete() to persist, or undoRemove() to restore.
   (AppSetting, int)? removeSetting(int id) {
     final index = _settings.indexWhere((s) => s.id == id);
